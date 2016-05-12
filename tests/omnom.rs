@@ -33,7 +33,7 @@ impl<'a> Consumer<&'a[u8], usize, (), Move> for TestConsumer {
     match self.state {
       State::Beginning => {
         match input {
-          Input::Empty | Input::Eof(None) => {
+          Input::Empty | Input::Eof(None) | Input::Error => {
             self.state   = State::Error;
             self.c_state = ConsumerState::Error(());
           },
@@ -56,7 +56,7 @@ impl<'a> Consumer<&'a[u8], usize, (), Move> for TestConsumer {
       },
       State::Middle    => {
         match input {
-          Input::Empty | Input::Eof(None) => {
+          Input::Empty | Input::Eof(None) | Input::Error => {
             self.state   = State::Error;
             self.c_state = ConsumerState::Error(());
           },
@@ -81,7 +81,7 @@ impl<'a> Consumer<&'a[u8], usize, (), Move> for TestConsumer {
       },
       State::End       => {
         match input {
-          Input::Empty | Input::Eof(None) => {
+          Input::Empty | Input::Eof(None) | Input::Error => {
             self.state   = State::Error;
             self.c_state = ConsumerState::Error(());
           },

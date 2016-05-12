@@ -16,7 +16,8 @@ use internal::Needed;
 pub enum Input<I> {
   Element(I),
   Empty,
-  Eof(Option<I>)
+  Eof(Option<I>),
+  Error
 }
 
 /// Stores a consumer's current computation state
@@ -375,7 +376,7 @@ impl<'x> Producer<'x,&'x [u8],Move> for FileProducer {
           }
         }
         // is it right?
-        FileProducerState::Error  => consumer.state()
+        FileProducerState::Error  => consumer.handle(Input::Error)
       }
     } else {
       consumer.state()
@@ -503,6 +504,7 @@ macro_rules! consumer_from_parser (
       use $crate::Offset;
         match input {
           $crate::Input::Empty | $crate::Input::Eof(None)           => &self.state,
+          $crate::Input::Error                                      => &self.state,
           $crate::Input::Element(sl) | $crate::Input::Eof(Some(sl)) => {
             self.state = match $submac!(sl, $($args)*) {
               $crate::IResult::Incomplete(n)  => {
@@ -546,6 +548,7 @@ macro_rules! consumer_from_parser (
       use $crate::Offset;
         match input {
           $crate::Input::Empty | $crate::Input::Eof(None)           => &self.state,
+          $crate::Input::Error                                      => &self.state,
           $crate::Input::Element(sl) | $crate::Input::Eof(Some(sl)) => {
             self.state = match $submac!(sl, $($args)*) {
               $crate::IResult::Incomplete(n)  => {
@@ -597,6 +600,7 @@ mod tests {
     fn handle(&mut self, input: Input<&'a [u8]>) -> &ConsumerState<&'a [u8],(),Move> {
       match input {
         Input::Empty | Input::Eof(None) => &self.state,
+        Input::Error                    => &self.state,
         Input::Element(sl)              => {
           match abcd(sl) {
             IResult::Error(_) => {
@@ -668,6 +672,7 @@ mod tests {
     fn handle(&mut self, input: Input<&'a [u8]>) -> &ConsumerState<&'a [u8], (), Move> {
       match input {
         Input::Empty | Input::Eof(None) => &self.state,
+        Input::Error                    => &self.state,
         Input::Element(sl)              => {
           match self.parsing_state {
             State::Initial => match abcd(sl) {
@@ -822,6 +827,7 @@ mod tests {
     fn handle(&mut self, input: Input<&'a [u8]>) -> &ConsumerState<&'a str, (), Move> {
       match input {
         Input::Empty | Input::Eof(None)           => &self.state,
+        Input::Error                              => &self.state,
         Input::Element(sl) | Input::Eof(Some(sl)) => {
           self.state = ConsumerState::Done(Move::Consume(sl.len()), from_utf8(sl).unwrap());
           &self.state

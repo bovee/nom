@@ -336,6 +336,7 @@ impl MP4Consumer {
   fn consume_main(&mut self, input: Input<&[u8]>) -> ConsumerState<(), (), Move> {
     //println!("\nparsing box header:\n{}", input.to_hex(8));
     match input {
+      Input::Error     => ConsumerState::Error(()),
       Input::Eof(None) => ConsumerState::Done(Move::Consume(0), ()),
       Input::Empty     => ConsumerState::Continue(Move::Consume(0)),
       Input::Element(sl) |  Input::Eof(Some(sl)) => {
@@ -399,8 +400,8 @@ impl MP4Consumer {
   fn consume_moov(&mut self, input: Input<&[u8]>) -> ConsumerState<(), (), Move> {
     //println!("\nparsing moov box(remaining {} bytes):\n{}", self.moov_bytes, input.to_hex(8));
     match input {
-      Input::Eof(None) => return ConsumerState::Error(()),
-      Input::Empty => return ConsumerState::Continue(Move::Consume(0)),
+      Input::Eof(None) | Input::Error => return ConsumerState::Error(()),
+      Input::Empty                    => return ConsumerState::Continue(Move::Consume(0)),
       Input::Element(sl) |  Input::Eof(Some(sl)) => {
         if self.moov_bytes == 0 {
           //println!("finished parsing moov atom, continuing with main parser");
@@ -465,8 +466,8 @@ impl<'a> Consumer<&'a[u8], (), (), Move> for MP4Consumer {
       },
       MP4State::Mvhd(sz) => {
         match input {
-          Input::Eof(None) => self.c_state = ConsumerState::Error(()),
-          Input::Empty     => self.c_state = ConsumerState::Continue(Move::Consume(0)),
+          Input::Eof(None) | Input::Error => self.c_state = ConsumerState::Error(()),
+          Input::Empty                    => self.c_state = ConsumerState::Continue(Move::Consume(0)),
           Input::Element(sl) |  Input::Eof(Some(sl)) => {
             let mut c = MvhdConsumer{ state:ConsumerState::Continue(Move::Consume(0)) };
             self.c_state = c.handle(Input::Element(&sl[..sz])).flat_map(|m, _| {
