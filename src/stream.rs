@@ -261,6 +261,10 @@ impl FileProducer {
     shift(&mut self.v, self.start, self.end);
     self.end = self.end - self.start;
     self.start = 0;
+    if self.end == self.v.len() {
+        self.state = FileProducerState::Error;
+        return None
+    }
     match self.file.read(&mut self.v[self.end..]) {
       Err(_) => {
         self.state = FileProducerState::Error;
